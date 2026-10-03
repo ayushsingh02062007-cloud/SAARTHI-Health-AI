@@ -1,0 +1,4 @@
+﻿Patient ID: DEMO-001
+Hemoglobin: 10.2 g/dL
+Temperature: 101 F
+SpO2: 94%

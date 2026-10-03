@@ -1,0 +1,8 @@
+{
+    "patient_id": "DEMO-001",
+    "age": 25,
+    "gender": "Male",
+    "language": "Hindi",
+    "symptoms": "Mujhe 3 din se bukhar hai aur kal se saans lene mein dikkat ho rahi hai.",
+    "duration": "3 days"
+}

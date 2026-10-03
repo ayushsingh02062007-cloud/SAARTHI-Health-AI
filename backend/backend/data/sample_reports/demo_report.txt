@@ -1,0 +1,10 @@
+PATIENT MEDICAL REPORT
+
+Patient ID: DEMO-001
+Hemoglobin: 12.5 g/dL
+Temperature: 101.2 F
+SpO2: 94%
+
+Reported symptoms:
+Fever for 3 days
+Difficulty breathing since yesterday
