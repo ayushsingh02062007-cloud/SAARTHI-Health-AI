@@ -1,69 +1,12 @@
-
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM
-)
-
 import re
-
-
 # ==========================================
 # SAARTHI AI Medical Information Model
+# Lightweight deployment version
 # ==========================================
 
-MODEL_NAME = "google/flan-t5-small"
+MODEL_NAME = "saarthi-lightweight-organizer"
 
-# Model objects are NOT loaded during startup.
-tokenizer = None
-medical_ai = None
-
-MODEL_STATUS = "not_loaded"
-
-
-# ==========================================
-# Lazy Model Loader
-# ==========================================
-
-def load_model():
-
-    global tokenizer
-    global medical_ai
-    global MODEL_STATUS
-
-    # Already loaded
-    if tokenizer is not None and medical_ai is not None:
-        return True
-
-    try:
-
-        print("Loading SAARTHI AI model...")
-
-        tokenizer = AutoTokenizer.from_pretrained(
-            MODEL_NAME
-        )
-
-        medical_ai = AutoModelForSeq2SeqLM.from_pretrained(
-            MODEL_NAME
-        )
-
-        MODEL_STATUS = "loaded"
-
-        print("SAARTHI AI model loaded successfully.")
-
-        return True
-
-    except Exception as error:
-
-        tokenizer = None
-        medical_ai = None
-
-        MODEL_STATUS = "error"
-
-        print(
-            f"SAARTHI AI Model loading failed: {error}"
-        )
-
-        return False
+MODEL_STATUS = "ready"
 
 
 # ==========================================
@@ -101,7 +44,7 @@ def extract_field(
 
 
 # ==========================================
-# AI Patient Information Analysis
+# Lightweight Patient Information Analysis
 # ==========================================
 
 def analyze_patient_information(
@@ -117,23 +60,7 @@ def analyze_patient_information(
 
 
     # ======================================
-    # Load model only when actually required
-    # ======================================
-
-    if not load_model():
-
-        return {
-            "status": "error",
-            "message": (
-                "AI model is currently unavailable."
-            ),
-            "model": MODEL_NAME,
-            "model_status": MODEL_STATUS
-        }
-
-
-    # ======================================
-    # Extract known structured fields
+    # Extract structured fields
     # ======================================
 
     patient_id = extract_field(
@@ -163,175 +90,166 @@ def analyze_patient_information(
 
 
     # ======================================
-    # AI Prompt
+    # Lightweight organization
     # ======================================
 
-    prompt = f"""
-You are SAARTHI Health AI.
+    reported_information = []
 
-You are a healthcare information organization
-assistant.
+    if patient_id:
+        reported_information.append(
+            f"Patient ID: {patient_id}"
+        )
 
-Your ONLY task is to organize information
-explicitly provided by the patient.
+    if age:
+        reported_information.append(
+            f"Age: {age}"
+        )
 
-Do NOT diagnose.
-Do NOT prescribe medicine.
-Do NOT recommend treatment.
-Do NOT make a final clinical decision.
+    if gender:
+        reported_information.append(
+            f"Gender: {gender}"
+        )
 
-Create a concise review note.
+    if symptoms:
+        reported_information.append(
+            f"Reported symptoms: {symptoms}"
+        )
 
-Patient ID: {patient_id or "Not provided"}
-Age: {age or "Not provided"}
-Gender: {gender or "Not provided"}
-Symptoms: {symptoms or "Not provided"}
-Duration: {duration or "Not provided"}
-
-Return only these sections:
-
-Symptoms:
-Duration:
-Important reported information:
-Missing information:
-
-Do not invent information.
-"""
-
-
-    try:
-
-        # ==================================
-        # Tokenize prompt
-        # ==================================
-
-        inputs = tokenizer(
-            prompt,
-            return_tensors="pt",
-            truncation=True,
-            max_length=512
+    if duration:
+        reported_information.append(
+            f"Reported duration: {duration}"
         )
 
 
-        # ==================================
-        # Generate AI output
-        # ==================================
+    if reported_information:
 
-        outputs = medical_ai.generate(
-            **inputs,
-            max_new_tokens=180,
-            do_sample=False
+        important_information = "\n".join(
+            reported_information
+        )
+
+    else:
+
+        important_information = (
+            "No structured patient information "
+            "was identified."
         )
 
 
-        generated_text = tokenizer.decode(
-            outputs[0],
-            skip_special_tokens=True
-        ).strip()
+    # ======================================
+    # Missing information
+    # ======================================
+
+    missing_information = []
+
+    if not age:
+        missing_information.append("Age")
+
+    if not gender:
+        missing_information.append("Gender")
+
+    if not symptoms:
+        missing_information.append("Symptoms")
+
+    if not duration:
+        missing_information.append("Duration")
 
 
-        # ==================================
-        # Reliable fallback values
-        # ==================================
+    if missing_information:
 
-        if not generated_text:
+        missing_text = ", ".join(
+            missing_information
+        )
 
-            generated_text = (
-                "Symptoms: "
-                f"{symptoms or 'Not provided'}\n"
-                "Duration: "
-                f"{duration or 'Not provided'}\n"
-                "Important reported information: "
-                f"Patient information was provided for review.\n"
-                "Missing information: "
-                "Additional clinical information may be required."
-            )
+    else:
 
-
-        # ==================================
-        # Build structured AI summary
-        # ==================================
-
-        structured_summary = (
-            f"Patient ID: "
-            f"{patient_id or 'Not provided'}\n"
-            f"Age: "
-            f"{age or 'Not provided'}\n"
-            f"Gender: "
-            f"{gender or 'Not provided'}\n"
-            f"Symptoms: "
-            f"{symptoms or 'Not provided'}\n"
-            f"Duration: "
-            f"{duration or 'Not provided'}\n\n"
-            f"AI Organized Information:\n"
-            f"{generated_text}"
+        missing_text = (
+            "No basic information is missing."
         )
 
 
-        return {
+    # ======================================
+    # Review note
+    # ======================================
 
-            "status": "success",
+    generated_text = (
+        "Symptoms:\n"
+        f"{symptoms or 'Not provided'}\n\n"
 
-            "model":
-                MODEL_NAME,
+        "Duration:\n"
+        f"{duration or 'Not provided'}\n\n"
 
-            "model_status":
-                MODEL_STATUS,
+        "Important reported information:\n"
+        f"{important_information}\n\n"
 
-            "ai_summary":
-                structured_summary,
-
-            "structured_information": {
-
-                "patient_id":
-                    patient_id or None,
-
-                "age":
-                    age or None,
-
-                "gender":
-                    gender or None,
-
-                "symptoms":
-                    symptoms or None,
-
-                "duration":
-                    duration or None
-            },
-
-            "human_review":
-                "Required",
-
-            "safety":
-                "Non-diagnostic",
-
-            "disclaimer": (
-                "AI output is for healthcare "
-                "information organization only. "
-                "It does not provide diagnosis, "
-                "treatment or medical advice."
-            )
-        }
+        "Missing information:\n"
+        f"{missing_text}"
+    )
 
 
-    except Exception as error:
+    # ======================================
+    # Structured summary
+    # ======================================
 
-        return {
+    structured_summary = (
+        f"Patient ID: "
+        f"{patient_id or 'Not provided'}\n"
+        f"Age: "
+        f"{age or 'Not provided'}\n"
+        f"Gender: "
+        f"{gender or 'Not provided'}\n"
+        f"Symptoms: "
+        f"{symptoms or 'Not provided'}\n"
+        f"Duration: "
+        f"{duration or 'Not provided'}\n\n"
+        f"AI Organized Information:\n"
+        f"{generated_text}"
+    )
 
-            "status": "error",
 
-            "model":
-                MODEL_NAME,
+    return {
 
-            "model_status":
-                MODEL_STATUS,
+        "status": "success",
 
-            "message":
-                "AI analysis failed.",
+        "model":
+            MODEL_NAME,
 
-            "error":
-                str(error)
-        }
+        "model_status":
+            MODEL_STATUS,
+
+        "ai_summary":
+            structured_summary,
+
+        "structured_information": {
+
+            "patient_id":
+                patient_id or None,
+
+            "age":
+                age or None,
+
+            "gender":
+                gender or None,
+
+            "symptoms":
+                symptoms or None,
+
+            "duration":
+                duration or None
+        },
+
+        "human_review":
+            "Required",
+
+        "safety":
+            "Non-diagnostic",
+
+        "disclaimer": (
+            "AI output is for healthcare "
+            "information organization only. "
+            "It does not provide diagnosis, "
+            "treatment or medical advice."
+        )
+    }
 
 
 # ==========================================
@@ -349,5 +267,5 @@ def get_model_status() -> dict:
             MODEL_STATUS,
 
         "available":
-            medical_ai is not None
+            True
     }
