@@ -13,31 +13,57 @@ import re
 
 MODEL_NAME = "google/flan-t5-small"
 
+# Model objects are NOT loaded during startup.
+tokenizer = None
+medical_ai = None
 
-try:
-
-    tokenizer = AutoTokenizer.from_pretrained(
-        MODEL_NAME
-    )
-
-    medical_ai = AutoModelForSeq2SeqLM.from_pretrained(
-        MODEL_NAME
-    )
-
-    MODEL_STATUS = "loaded"
+MODEL_STATUS = "not_loaded"
 
 
-except Exception as error:
+# ==========================================
+# Lazy Model Loader
+# ==========================================
 
-    tokenizer = None
+def load_model():
 
-    medical_ai = None
+    global tokenizer
+    global medical_ai
+    global MODEL_STATUS
 
-    MODEL_STATUS = "error"
+    # Already loaded
+    if tokenizer is not None and medical_ai is not None:
+        return True
 
-    print(
-        f"SAARTHI AI Model loading failed: {error}"
-    )
+    try:
+
+        print("Loading SAARTHI AI model...")
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_NAME
+        )
+
+        medical_ai = AutoModelForSeq2SeqLM.from_pretrained(
+            MODEL_NAME
+        )
+
+        MODEL_STATUS = "loaded"
+
+        print("SAARTHI AI model loaded successfully.")
+
+        return True
+
+    except Exception as error:
+
+        tokenizer = None
+        medical_ai = None
+
+        MODEL_STATUS = "error"
+
+        print(
+            f"SAARTHI AI Model loading failed: {error}"
+        )
+
+        return False
 
 
 # ==========================================
@@ -90,7 +116,11 @@ def analyze_patient_information(
         }
 
 
-    if medical_ai is None or tokenizer is None:
+    # ======================================
+    # Load model only when actually required
+    # ======================================
+
+    if not load_model():
 
         return {
             "status": "error",
